@@ -1,0 +1,141 @@
+╔═════════════════════════════════════════════╗
+║ ┏━┓╻╺┳╸┏━╸╻  ┏━╸┏┓╻   ╻┏ ┏━┓┏┓╻┏━┓╻ ╻╺┳╸┏━╸ ║
+║ ┗━┓┃ ┃ ┣╸ ┃  ┣╸ ┃┗┫   ┣┻┓┃ ┃┃┗┫┣━┛┃ ┃ ┃ ┣╸  ║
+║ ┗━┛╹ ╹ ┗━╸┗━╸┗━╸╹ ╹   ╹ ╹┗━┛╹ ╹╹  ┗━┛ ╹ ┗━╸ ║
+╚═════════════════════════════════════════════╝
+
+
+OVERVIEW
+════════
+
+sitelen Konpute is bitmap data for a toki pona small pixel font. It covers
+different visual styles of printable ASCII/Latin script, sitelen pona script,
+semigraphic characters, and more.
+
+Every glyph fits in a 8x8 block (often being of size 7x7 so as to leave blank
+space between characters) and is assigned a codepoint mapped:
+- to a Unicode equivalent (when possible)
+- or otherwise mapped in Unicode Private Use Area, in a way which includes and
+  extends how Sitelen Pona is encoded in the Under-ConScript Unicode Registry
+  (UCSUR), see: https://www.kreativekorp.com/ucsur/charts/sitelen.html
+
+Using the data (and scripts provided), it is possible to create severy type of
+pixel fonts. A popular application is to create a "pixel" TTF font using the
+online BitFontMaker2 tool: https://www.pentacom.jp/pentacom/bitfontmaker2/
+
+
+PROJECT BACKGROUND
+══════════════════
+
+Why?
+🭷🭷🭷🭷
+- I like Toki Pona and I like pixel fonts and old-school aesthetics.
+- tenpo kama la, mi wile pali e ilo nanpa pi toki pona.
+  nimi ona li "ilo Konpute" li kepeken sitelen lili ni.
+
+
+Toki Pona? Sitelen Pona? What's that?
+🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷
+Toki Pona is a constructed language of 120-ish core words created by Canadian
+linguist Sonja Lang in 2001 to simplify thoughts and communication. Toki Pona is
+simple to learn and has many applications as a philosophical, personal, and
+creative language. It's also a popular conlang used on the Internet, and is a
+fun and easy way to become multilingual. ISO 639-3 code for toki pona is TOK.
+For more information:
+ - see: https://tokipona.org
+ - in toki pona, I'm jan Polijan, and here's some of my stuff:
+   YouTube videos => https://www.youtube.com/c/janPolijan
+   Mastodon       => https://toki.social/@janPolijan
+
+toki pona can be written in many different ways. The two most popular are:
+- the Latin alphabet (a convenient way for every electronic devices)
+- Sitelen Pona, a logographic writing system invented for Toki Pona,
+  and which feels like a more "native" and playful way to write the language.
+
+
+SITELEN
+═══════
+
+sitelen Konpute li sona e sitelen mute ni:
+
+
+sitelen Lasina
+🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷
+
+IJO Lasina_* │ SEME / KIPISI TAN NASIN UNIKO ("Unicode")
+─────────────┼──────────────────────────────────────────────────────────────
+pona         │ printable ASCII mapped in the "Basic Latin" block
+             │ the digits are in a sitelen pona pu-style.
+             │ The Latin digits are also available 
+             │ in private area and can be used.
+─────────────┼──────────────────────────────────────────────────────────────
+wawa         │ (TODO:NOT YET, currently the basic ASCII is bold text)
+             │ bold version of ASCII, this is mapped to the "Mathematical
+             │ Alphanumeric Symbols" block (and in private area for the sitelen
+             │ pona like numbers?)
+─────────────┼──────────────────────────────────────────────────────────────────
+poka         │ (TODO) an italic version of ASCII, mapped to the "Mathematical
+             │ Alphanumeric Symbols" and "Letterlike symbols" blocks and in
+             │private area for the sitelen pona-like numbers?)
+─────────────┼──────────────────────────────────────────────────────────────────
+linja-tu     │ a "double struck" version of ASCII, mapped to the
+             │ "Mathematical Alphanumeric Symbols" and "Letterlike Symbols"
+─────────────┼──────────────────────────────────────────────────────────────────
+lili         │ small ASCII letters. can serve as superscript. The glyphs mostly
+             │ are 5x3? It is mapped to many characters in Unicode and to a few
+             │ private ones
+─────────────┼──────────────────────────────────────────────────────────────────
+lili-wawa    │ bold version of the small ASCII (TODO)
+─────────────┼──────────────────────────────────────────────────────────────────
+namako       │ mostly characters from the "Latin-1 Supplement" block
+─────────────┼──────────────────────────────────────────────────────────────────
+poki         │ enclosed uppercase letters. they come in 4 flavours:
+             │ - enclosure can be either a square or a circle
+             │ - they can be in normal or inverse enclosure
+             │ those are mapped to "Enclosed Alphanumeric" and "Enclosed
+             │ Alphanumeric Supplement" blocks
+
+
+sitelen sama sitelen pona
+🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷
+sitelen pona, sitelen pona-like, UCSUR-like characters ...
+those are mostly mapped to private areas.
+
+IJO          │ NANPA    │ SEME
+─────────────┼──────────┼───────────────────────────────────────────────────────
+UCSUR        │ U+F19xx  │ "Sitelen Pona" block from UCSUR
+wawa         │ U+F....  │ bold version of sitelen pona
+lili         │ U+F....  │ sitelen pona lili (7x5) lon sewi
+lili-wawa    │ U+F....  │ sitelen pona lili (7x5) pi linja wawa lon sewi
+Lasina       │ U+F....  │ nimi Lasina lon nasin sama pi sitelen pona UCSUR
+ante         │ U+F....  │ alternative glyphs for sitelen pona UCSUR
+poka-ante    │ U+F....  │ mirror or flips of sitelen pona glyphs
+nimi-tu      │ U+F....  │ pre-formed sitelen pona compound names
+namako       │ U+F....  │ additional glyphs and glyphs for non-UCSUR words
+
+
+sitelen pi musi supa
+🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷🭷
+sitelen ni li tawa musi:
+
+IJO          │ KIPISI TAN NASIN UNIKO ("Unicode")
+─────────────┼──────────────────────────────────────────────────────────────────
+lipu         │ sitelen tan kipisi "Playing Cards"
+Tomino       │ sitelen ale tan kipisi "Domino Tiles"
+utala-lawa   │ "tokiponized" chess pieces from the "Miscellaneous Symbols" block
+ante         │ glyphs for other games: Dice, Checkers, ...
+
+sitelen
+🭷🭷🭷🭷🭷🭷🭷
+mostly semigraphics characters
+AS sitelen Konpute is monospaced, usage of those can give nice visuals.
+
+IJO         │ SEME / KIPISI TAN NASIN UNIKO ("Unicode")
+────────────┼───────────────────────────────────────────────────────────────────
+poki        │ sitelen ale  tan kipisi "BoxDrawing"
+leko        │ sitelen ale  tan kipisi "BlockElements"
+leko-namako │ sitelen mute tan kipisi "Symbols For Legacy Computing"
+
+ante
+🭷🭷🭷🭷
+TODO
