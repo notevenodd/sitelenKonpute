@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# Usage: $0 [U+codepoint] [N]
+# Prints a sequence of N characters starting at the given codepoint.
+# By default: N=256, codepoint is U+F1900 (start of UCSUR sitelen pona)
+
+START=F1900; N=255
+case $# in
+     0)                     ;;
+     1) START=${1#U+}       ;;
+     2) START=${1#U+}; N=$2 ;;
+     *) exit 3              ;;
+esac
+START=$(printf %d "0x$START")
+
+for i in $(seq "$START" "$((START + N))"); do
+    [ $((i % 16)) -eq 0 ] && printf '\n'
+    printf "\U$(printf '%0x\n' "$i") "
+done
+echo

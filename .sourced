@@ -1,0 +1,6 @@
+#!/bin/sh
+#(this file gets automatically sourced when my shell starts in this directory)
+
+TOMO=$PWD
+PATH=$TOMO/ilo:$PATH
+export TOMO PATH

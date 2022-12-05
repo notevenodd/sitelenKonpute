@@ -1,0 +1,252 @@
+#!/bin/sh
+
+# Usage: sitelen-ale [COMMAND] [FILE...]
+# where:
+#
+# FILE... is the list of files with symbols definition
+#         (if not specified, all the sitelen/*.sona files)
+#
+# COMMAND can be one of the following:
+#
+#     check       => performs various tests to check symbols are well defined
+#
+#     symbols_    => list symbols definition
+#                    (strip comments or blank lines and do light processing)
+#
+#     symbols     => like `symbols_` but additionally transforms codepoints to
+#                    decimal and then sort by ascending codepoint
+#
+#     show        => presents the symbols in an interactive fzf(1) "UI"
+#                    with symbol preview
+#
+#     bfm         => first, executes the `check` command, and if successful:
+#                    outputs a json object needed to import the data into
+#                    the BitFontMaker2 pixel-font online tool:
+#                    https://www.pentacom.jp/pentacom/bitfontmaker2/
+#
+#     bfm_        => like `bfm` command, but only outputs the symbol definitions
+#                    parts, not the whole json object.
+#
+#     xbfm        => like the `bfm` command, but instead of printing on standard
+#                    output, copy the json object to the clipboard instead.
+#                    (this requires either xclip(1) or xsel(1))
+#
+
+
+
+################################################################################
+# small utility functions
+################################################################################
+
+awk_()   { awk -F, -v 'OFS=,' "$@"; }          # awk with ,-separated fields
+die()    { printf '%s\n' "$*" >&2; exit 1; }   # prints error message and exits
+exists() { command -v "$@" > /dev/null; }      # returns 0 iff a command exists
+usage()  { sed -n -e '/^# Usage:/,/^$/ s/^# \?//p' "$0" >&2; exit 1; }  # usage
+
+
+################################################################################
+# functions that implements the commands
+################################################################################
+# the numerous "disable=SC2016" comments are for shellcheck, as it otherwise
+# complains that `expressions dont expand in single quotes` when we put stuff
+# like '$1', etc. in awk scripts or inside fzf previews.
+
+
+# take the symbol definition files
+# and apply a sed filter that:
+# - strips comments,
+# - delete blank lines,
+# - replace spaces after the codepoint with a comma,
+# - remove anything after spaces,
+# - for codepoints that are in the form U+... write them as 0x... instead.
+symbols_() {
+   sed  -e '/^#.*$/d'                     \
+        -e '/^[[:space:]]*$/d'            \
+        -e 's/[[:space:]][[:space:]]*/,/' \
+        -e 's/[[:space:]].*//'            \
+        -e 's/^U+/0x/'                    \
+        "$@"
+}
+
+# apply "symbols_" and then:
+# - transform codepoints to decimal,
+# - sort by ascending codepoint
+symbols() {
+   #shellcheck disable=SC2016
+   symbols_ "$@"                                               |
+   awk_ -Wposix                                                \
+        '{ printf("%d,", $1); print $2,$3,$4,$5,$6,$7,$8,$9 }' |
+   sort -n -k1,1 -t,
+   # note:  -Wposix is to get printf %d in awk.
+   #        seems to work on Linux at least.
+}
+
+
+# various consistency checks for the symbols in the files passed in parameters
+check() {
+   # check that every line has same number of fields
+   [ "$(symbols_ "$@" | awk_ '{print NF}' | uniq | wc -l)" = '1' ]   \
+   || die 'various # of fields'
+
+   # check there are only digits and ,
+   [ "$(symbols "$@" | grep -c '[^0-9,]')" = '0' ]                    \
+   || die 'there are non-digits or ,'
+
+   # check there are no duplicate codepoint:
+   #shellcheck disable=SC2016
+   [ "$(symbols "$@" | awk_ '{print $1}' | uniq -d | wc -c)" = '0' ]  \
+   || die 'duplicates'
+
+   # check every codepoint is <=10FFFF:
+   #shellcheck disable=SC2016
+   [ "$(symbols "$@" | awk_ '{ if ($1 > 1114111) print "X" }' | wc -c)" = '0' ] \
+   || die 'codepoint error'
+
+   # check each symbol is in <256
+   #shellcheck disable=SC2016
+   [ "$(symbols "$@" |
+        awk_ '{ if ($2 > 255)  print "2"
+                if ($3 > 255)  print "3"
+                if ($4 > 255)  print "4"
+                if ($5 > 255)  print "5"
+                if ($6 > 255)  print "6"
+                if ($7 > 255)  print "7"
+                if ($8 > 255)  print "8"
+             }' |
+        wc -c)" = '0' \
+   ] || die 'symbols >255'
+}
+
+
+# show the symbols definitions from the files passed in arguements
+# presents those in a fzf UI with a symbol preview
+show() {
+   exists fzf || die 'requires fzf(1)'
+   #shellcheck disable=SC2016
+   cat "$@"                                                    |
+   sed -e 's/^#[[:space:]]*/#/'                                \
+       -e 's/^$/#/'                                            |
+   fzf --prompt         'symbols > '                           \
+       --query          '!^# '                                 \
+       --preview-window 'down:10'                              \
+       --preview                                               '
+         printf %s {}                                          |
+         sed "s/  */ /g"                                       |
+         awk -F"[, ]" '\''{print $2,$3,$4,$5,$6,$7,$8,$9}'\''  |
+         xargs -r sitelen-wan                                  '
+}
+
+
+# output on stdin the symbols part of the json format expected by BitFontMaker2
+bfm_() {
+   # the bulk of the symbol for each codepoint:
+   # * the `awk` command reverses the bytes (via a precomputed array) as
+   #   BFM2 tool counts its bytes like 1,2,4,8,...
+   #   we also shift two on the right, which why we have *4
+   # * the `sed` outputs JSON array of 16 bytes for each codepoint.
+   #shellcheck disable=SC2016
+   symbols "$@" |
+   awk_ 'BEGIN {
+         R[0]=0    ; R[1]=128  ; R[2]=64   ; R[3]=192  ; R[4]=32   ; R[5]=160  ;
+         R[6]=96   ; R[7]=224  ; R[8]=16   ; R[9]=144  ; R[10]=80  ; R[11]=208 ;
+         R[12]=48  ; R[13]=176 ; R[14]=112 ; R[15]=240 ; R[16]=8   ; R[17]=136 ;
+         R[18]=72  ; R[19]=200 ; R[20]=40  ; R[21]=168 ; R[22]=104 ; R[23]=232 ;
+         R[24]=24  ; R[25]=152 ; R[26]=88  ; R[27]=216 ; R[28]=56  ; R[29]=184 ;
+         R[30]=120 ; R[31]=248 ; R[32]=4   ; R[33]=132 ; R[34]=68  ; R[35]=196 ;
+         R[36]=36  ; R[37]=164 ; R[38]=100 ; R[39]=228 ; R[40]=20  ; R[41]=148 ;
+         R[42]=84  ; R[43]=212 ; R[44]=52  ; R[45]=180 ; R[46]=116 ; R[47]=244 ;
+         R[48]=12  ; R[49]=140 ; R[50]=76  ; R[51]=204 ; R[52]=44  ; R[53]=172 ;
+         R[54]=108 ; R[55]=236 ; R[56]=28  ; R[57]=156 ; R[58]=92  ; R[59]=220 ;
+         R[60]=60  ; R[61]=188 ; R[62]=124 ; R[63]=252 ; R[64]=2   ; R[65]=130 ;
+         R[66]=66  ; R[67]=194 ; R[68]=34  ; R[69]=162 ; R[70]=98  ; R[71]=226 ;
+         R[72]=18  ; R[73]=146 ; R[74]=82  ; R[75]=210 ; R[76]=50  ; R[77]=178 ;
+         R[78]=114 ; R[79]=242 ; R[80]=10  ; R[81]=138 ; R[82]=74  ; R[83]=202 ;
+         R[84]=42  ; R[85]=170 ; R[86]=106 ; R[87]=234 ; R[88]=26  ; R[89]=154 ;
+         R[90]=90  ; R[91]=218 ; R[92]=58  ; R[93]=186 ; R[94]=122 ; R[95]=250 ;
+         R[96]=6   ; R[97]=134 ; R[98]=70  ; R[99]=198 ; R[100]=38 ; R[101]=166;
+         R[102]=102; R[103]=230; R[104]=22 ; R[105]=150; R[106]=86 ; R[107]=214;
+         R[108]=54 ; R[109]=182; R[110]=118; R[111]=246; R[112]=14 ; R[113]=142;
+         R[114]=78 ; R[115]=206; R[116]=46 ; R[117]=174; R[118]=110; R[119]=238;
+         R[120]=30 ; R[121]=158; R[122]=94 ; R[123]=222; R[124]=62 ; R[125]=190;
+         R[126]=126; R[127]=254; R[128]=1  ; R[129]=129; R[130]=65 ; R[131]=193;
+         R[132]=33 ; R[133]=161; R[134]=97 ; R[135]=225; R[136]=17 ; R[137]=145;
+         R[138]=81 ; R[139]=209; R[140]=49 ; R[141]=177; R[142]=113; R[143]=241;
+         R[144]=9  ; R[145]=137; R[146]=73 ; R[147]=201; R[148]=41 ; R[149]=169;
+         R[150]=105; R[151]=233; R[152]=25 ; R[153]=153; R[154]=89 ; R[155]=217;
+         R[156]=57 ; R[157]=185; R[158]=121; R[159]=249; R[160]=5  ; R[161]=133;
+         R[162]=69 ; R[163]=197; R[164]=37 ; R[165]=165; R[166]=101; R[167]=229;
+         R[168]=21 ; R[169]=149; R[170]=85 ; R[171]=213; R[172]=53 ; R[173]=181;
+         R[174]=117; R[175]=245; R[176]=13 ; R[177]=141; R[178]=77 ; R[179]=205;
+         R[180]=45 ; R[181]=173; R[182]=109; R[183]=237; R[184]=29 ; R[185]=157;
+         R[186]=93 ; R[187]=221; R[188]=61 ; R[189]=189; R[190]=125; R[191]=253;
+         R[192]=3  ; R[193]=131; R[194]=67 ; R[195]=195; R[196]=35 ; R[197]=163;
+         R[198]=99 ; R[199]=227; R[200]=19 ; R[201]=147; R[202]=83 ; R[203]=211;
+         R[204]=51 ; R[205]=179; R[206]=115; R[207]=243; R[208]=11 ; R[209]=139;
+         R[210]=75 ; R[211]=203; R[212]=43 ; R[213]=171; R[214]=107; R[215]=235;
+         R[216]=27 ; R[217]=155; R[218]=91 ; R[219]=219; R[220]=59 ; R[221]=187;
+         R[222]=123; R[223]=251; R[224]=7  ; R[225]=135; R[226]=71 ; R[227]=199;
+         R[228]=39 ; R[229]=167; R[230]=103; R[231]=231; R[232]=23 ; R[233]=151;
+         R[234]=87 ; R[235]=215; R[236]=55 ; R[237]=183; R[238]=119; R[239]=247;
+         R[240]=15 ; R[241]=143; R[242]=79 ; R[243]=207; R[244]=47 ; R[245]=175;
+         R[246]=111; R[247]=239; R[248]=31 ; R[249]=159; R[250]=95 ; R[251]=223;
+         R[252]=63 ; R[253]=191; R[254]=127; R[255]=255;
+        }
+        { print $1,4*R[$2],4*R[$3],4*R[$4],4*R[$5],4*R[$6],4*R[$7],4*R[$8],4*R[$9] }
+        '                        |
+   sed  -e 's/^/"/'              \
+        -e 's/,/":[0,0,0,0,0,/'  \
+        -e 's/$/,0,0,0],/'
+}
+
+# output on stdin the while json object expected by BitFontMaker2
+bfm() {
+   echo '{'
+   bfm_ "$@"
+   cat << EOF
+"name":"sitelenKonpute",
+"copy":"janPolijan",
+"letterspace":"0",
+"basefont_size":"512",
+"basefont_left":"62",
+"basefont_top":"0",
+"basefont":"Courier",
+"basefont2":"",
+"monospace":true,
+"monospacewidth":"8",
+"ascender":"7",
+"descender":"1",
+"linegap":"0",
+"wordspacing":"0"
+}
+EOF
+}
+
+# generate the font as a BitFontMaker2 JSON object and copy it to the clipboard
+xbfm() {
+   if   exists xclip ; then  bfm "$@" | xclip -selection clipboard
+   elif exists xsel  ; then  bfm "$@" | xsel -i --clipboard
+   else die 'requires xclip(1) or xsel(1) to copy to clipboard'
+   fi
+}
+
+
+
+################################################################################
+# the main script that calls the command functions
+################################################################################
+
+[ -n "$1" ] || usage
+CMD=$1; shift
+
+if [ $# -eq 0 ]; then
+   [ -n "$TOMO" ]     || die "Did you source the '.sourced' file?"
+   cd "$TOMO"/sitelen || die 'cannot find the images directory'
+   set -- *.sona
+fi
+
+case $CMD in
+   symbols_|symbols|show|check)            ;;
+                 bfm_|bfm|xbfm) check "$@" ;;
+                             *) usage      ;;
+esac
+"$CMD" "$@"

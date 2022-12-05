@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Usage: $0 [-i] [byte1 [byte2 [byte3 [byte4 [byte5 [byte6 [byte7 [byte8]]]]]]]]
+# prints a representation of the 8x8 glyph defined by the given bytes
+#
+# Options and Arguments:
+# * if a byte is missing, assumes it is 0.
+# * the -i option prints a reversed version of the glyph
+# * if the SITELEN_KONPUTE environment variable is non-null,
+#      then     : assumes the font used has a 1:1 aspect ratio,
+#      otherwise: assumes it as a 1:2 aspect ratio.
+
+
+if [ -n "$SITELEN_KONPUTE" ]
+   then EMPTY='🭾' ; FULL='█' ; printf '  12345678'
+   else EMPTY='▔🭾'; FULL='██'; printf '   1 2 3 4 5 6 7 8'
+fi
+
+if [ "$1" = '-i' ]; then
+   TMP=$EMPTY; EMPTY=$FULL; FULL=$TMP; shift
+fi
+
+p() {
+   if [ "$1" -eq 0 ]
+      then printf %s "$EMPTY"
+      else printf %s "$FULL"
+   fi
+}
+
+n=1
+while [ $n -le 8 ]; do
+   b=0
+   if [ $# -gt 0 ]; then
+      b=$1
+      shift
+   fi
+   printf '\n%d▕' "$n"
+   p $((b & 128)); p $((b & 64)); p $((b & 32)); p $((b & 16))
+   p $((b &   8)); p $((b &  4)); p $((b &  2)); p $((b &  1))
+   n=$((n + 1))
+done
+printf '\n  ▔▔▔▔▔▔▔▔'
+[ -n "$SITELEN_KONPUTE" ] || printf '▔▔▔▔▔▔▔▔'
+[ $# -eq 0 ] || { printf 'warning: over 8 parameters\n' >&2; exit 3; }
+printf '\n'

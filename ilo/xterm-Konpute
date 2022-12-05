@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Usage: $0 [--size] [XTERM_ARG]...
+# A wrapper around xterm(1) to launch it with the sitelen Konpute font,
+# By default, it will use point size 12, but you can pass arguments
+# (for example -fs 18) to have it bigger.
+
+export SITELEN_KONPUTE=true
+xterm +bdc -fn 'xft:iloKonpute' -fs 12 "$@"
